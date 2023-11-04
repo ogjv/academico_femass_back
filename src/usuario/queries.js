@@ -19,9 +19,11 @@ const getNomeEmail = (login) => {
         `SELECT * FROM usuario WHERE email='${login}' OR nome='${login}'`
     )
 }
-// const validateLogin =  (nome, email, senha){
-
-// }
+const deleteNome = (nome) => {
+    return(
+        `DELETE FROM usuario WHERE nome='${nome}'`
+    )
+}
 
 module.exports = {
     getAll,
@@ -29,4 +31,5 @@ module.exports = {
     getEmail,
     getNomeEmail,
     post,
+    deleteNome,
 }

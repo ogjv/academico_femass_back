@@ -5,6 +5,7 @@ const pool = require('./db')
 var session = require('express-session')
 const pgSession = require('connect-pg-simple')(session);
 const usuarioRoutes = require('./src/usuario/routes')
+const materiaRoutes = require('./src/materias/routes')
 var cors = require('cors');
 
 app.use(express.json())
@@ -20,12 +21,14 @@ app.use(session({
 }))
 
 app.get("/", (req,res) => {
-    req.session.isAuth = true
+    // req.session.isAuth = true
+    req.session.test = true
     console.log(req.session.id)
     res.send("Api Grade Femass")
 })
 
 app.use('/api/v1/usuarios', usuarioRoutes)
+app.use('/api/v1/materias', materiaRoutes)
 // app.use('/api/v1/pesquisadores', pesquisadorRoutes)
 // app.use('/api/v1/obras', obrasRoute)
 
