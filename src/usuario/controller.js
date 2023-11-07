@@ -11,18 +11,22 @@ const error = (err) => {
 
 const getAll = (req, res) => {
     pool.query(queries.getAll, (err, resSql) => {
-        if(err) res.send(error(err))
-        if (!req.session.views) {
-            req.session.views = 1;
+        if (err) {
+            res.send(error(err));
+        } else if (resSql && resSql.rows) {
+            if (!req.session.views) {
+                req.session.views = 1;
+            } else {
+                req.session.views++;
+            }
+            res.status(200).json(resSql.rows);
         } else {
-            req.session.views++;
+            res.status(500).send("Erro na consulta.");
         }
-        res.status(200).json(resSql.rows)
-    })
+    });
 }
 
 const post = (req, res) => {
-
     bcrypt.genSalt(saltRounds, (err, salt) => {
         bcrypt.hash(req.query.senha, salt, (err, hash) => {
             if (!req.session.views) {
@@ -31,12 +35,14 @@ const post = (req, res) => {
                 req.session.views++;
             }
             pool.query(queries.post(req.query.nome, req.query.email, hash), (err, resSql) => {
-                if(err) res.send(error(err))
-                res.status(200).send()
-            })
-        })
-    })
-
+                if (err) {
+                    res.send(error(err));
+                } else {
+                    res.status(200).send();
+                }
+            });
+        });
+    });
 }
 
 const deleteNome = (req, res) => {
