@@ -8,6 +8,8 @@ const usuarioRoutes = require('./src/usuario/routes')
 const materiaRoutes = require('./src/materias/routes')
 var cors = require('cors');
 
+
+
 app.use(express.json())
 app.use(cors());
 app.use(session({
