@@ -2,12 +2,16 @@ const pool = require('../../db')
 const queries = require('./queries')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const nodemailer = require('nodemailer');
+
 
 const error = (err) => {
     return({
         error: err
     })
 }
+
+
 
 const getAll = (req, res) => {
     pool.query(queries.getAll, (err, resSql) => {
@@ -26,6 +30,34 @@ const getAll = (req, res) => {
     });
 }
 
+const sendConfirmationEmail = (toEmail, res) => {
+    const transporter = nodemailer.createTransport({
+        service: 'outlook',
+        auth: {
+            user: 'utilidadesprog@outlook.com',
+            pass: 'Prog123456@',
+        },
+    });
+
+    const confirmationLink = `http://localhost:8080/api/v1/usuarios/confirmar/${encodeURIComponent(toEmail)}`;
+    const mailOptions = {
+    from: 'Grade Acadêmica <utilidadesprog@outlook.com>',
+    to: toEmail,
+    subject: 'Confirmação de Cadastro',
+    text: `Obrigado por se cadastrar na grade acadêmica FeMASS! Para confirmar seu cadastro, clique no seguinte link: ${confirmationLink}`,
+};
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('Erro ao enviar e-mail de confirmação:', error);
+            res.status(500).send('Erro ao enviar e-mail de confirmação');
+        } else {
+            console.log('E-mail de confirmação enviado:', info.response);
+            res.status(200).send('E-mail de confirmação enviado com sucesso');
+        }
+    });
+};
+
 const post = (req, res) => {
     bcrypt.genSalt(saltRounds, (err, salt) => {
         bcrypt.hash(req.query.senha, salt, (err, hash) => {
@@ -38,12 +70,30 @@ const post = (req, res) => {
                 if (err) {
                     res.send(error(err));
                 } else {
-                    res.status(200).send();
+                    sendConfirmationEmail(req.query.email, res); //enviar o e-mail de confirmação
                 }
             });
         });
     });
-}
+};
+
+const confirmarCadastro = (req, res) => {
+    const email = decodeURIComponent(req.params.email);
+    console.log('Email a ser confirmado:', email);
+    
+    pool.query('UPDATE usuario SET confirmacao = true WHERE email = $1', [email], (err, result) => {
+        console.log('Resultado da query de atualização:', result);
+        if (err) {
+            console.error('Erro ao confirmar cadastro:', err);
+            res.status(500).send('Erro ao confirmar cadastro.');
+        } else if (result.rowCount === 0) {
+            res.status(404).send('E-mail não encontrado.');
+        } else {
+            // Redirecione o usuário para uma página de confirmação bem-sucedida.
+            res.redirect('/cadastro-confirmado');
+        }
+    });
+};
 
 const deleteNome = (req, res) => {
 
@@ -111,4 +161,5 @@ module.exports = {
     validateLogin,
     secret,
     isAuth,
+    confirmarCadastro,
 }

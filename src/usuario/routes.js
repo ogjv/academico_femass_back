@@ -1,5 +1,6 @@
 const { Router } = require('express')
 const controller = require('./controller')
+const express = require('express');
 
 const router = Router()
 
@@ -17,5 +18,7 @@ router.get('/secret', isAuth, controller.secret)
 router.get('/isAuth', controller.isAuth)
 router.post('/post', controller.post)
 router.delete('/deleteNome', controller.deleteNome)
+router.get('/confirmar/:email', controller.confirmarCadastro);
+
 
 module.exports = router
