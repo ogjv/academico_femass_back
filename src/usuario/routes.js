@@ -19,6 +19,7 @@ router.get('/isAuth', controller.isAuth)
 router.post('/post', controller.post)
 router.delete('/deleteNome', controller.deleteNome)
 router.get('/confirmar/:email', controller.confirmarCadastro);
+router.post('/recuperar-senha', controller.recuperarSenha);
 
 
 module.exports = router
