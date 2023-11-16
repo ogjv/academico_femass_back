@@ -1,4 +1,5 @@
 const getAll = "SELECT * FROM usuario"
+const pool = require('../../db');
 const post = (nome, email, senha) => {
     return(
         `INSERT INTO usuario(nome,email,senha) VALUES('${nome}', '${email}', '${senha}')`
@@ -24,6 +25,31 @@ const deleteNome = (nome) => {
         `DELETE FROM usuario WHERE nome='${nome}'`
     )
 }
+const salvarCodigoSeguranca = (email, codigoSeguranca) => {
+    const query = 'UPDATE usuario SET codigo_seguranca = $1 WHERE email = $2';
+    const values = [codigoSeguranca, email];
+  
+    return pool.query(query, values);
+};
+const getUsuarioByEmail = (email) => {
+    return (
+      `SELECT * FROM usuario WHERE email='${email}'`
+    );
+};
+const atualizarSenha = (email, novaSenha) => {
+    return {
+      text: 'UPDATE usuario SET senha = $1 WHERE email = $2',
+      values: [novaSenha, email],
+    };
+};  
+
+const updateCursadas = (materiasCursadas, userId) => {
+    return {
+      text: 'UPDATE usuario SET materias_cursadas = $1 WHERE id = $2',
+      values: [materiasCursadas, userId],
+    };
+  };
+
 
 module.exports = {
     getAll,
@@ -32,4 +58,8 @@ module.exports = {
     getNomeEmail,
     post,
     deleteNome,
+    salvarCodigoSeguranca,
+    getUsuarioByEmail,
+    atualizarSenha,
+    updateCursadas,
 }

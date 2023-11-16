@@ -147,93 +147,6 @@ const validateLogin = (req, res) => {
     });
 };
 
-const resetarSenha = (req, res) => {
-    const { token } = req.params;
-    const { novaSenha } = req.body;
-
-    if (!token || !novaSenha) {
-        res.status(400).send('Token ou nova senha não fornecidos.');
-        return;
-    }
-
-    // Verifique e decodifique o token de recuperação
-    jwt.verify(token, 'arquivo_confidencial', (err, decoded) => {
-        if (err) {
-            res.status(400).send('Token inválido.');
-            return;
-        }
-
-        const { email } = decoded;
-
-        // Atualiza a senha do usuário no banco de dados
-        updateSenhaUsuario(email, novaSenha)
-            .then(() => res.status(200).send('Senha redefinida com sucesso.'))
-            .catch((error) => {
-                console.error('Erro ao redefinir a senha:', error);
-                res.status(500).send('Erro ao redefinir a senha.');
-            });
-    });
-};
-const recuperarSenha = (req, res) => {
-    const { username } = req.body;
-  
-    if (!username) {
-      res.status(400).send('Nome de usuário não fornecido.');
-      return;
-    }
-  
-    // Lógica para obter o e-mail associado ao nome de usuário
-    pool.query(queries.getEmailFromUsername(username), (err, result) => {
-      if (err) {
-        console.error('Erro ao obter e-mail do usuário:', err);
-        res.status(500).send('Erro ao solicitar recuperação de senha.');
-        return;
-      }
-  
-      if (result.rows.length === 0) {
-        res.status(400).send('Nome de usuário não encontrado.');
-        return;
-      }
-  
-      const email = result.rows[0].email;
-  
-      // Gere um token de recuperação de senha
-      const tokenRecuperacao = jwt.sign({ email }, 'arquivo_confidencial', { expiresIn: '1h' });
-      const linkRecuperacao = `http://localhost:8080/api/v1/usuarios/resetar-senha/${tokenRecuperacao}`;
-  
-      // Envia e-mail para o usuário
-      sendRecuperacaoEmail(email, linkRecuperacao)
-        .then(() => res.status(200).send('E-mail de recuperação enviado com sucesso.'))
-        .catch((error) => {
-          console.error('Erro ao enviar e-mail de recuperação:', error);
-          res.status(500).send('Erro ao enviar e-mail de recuperação.');
-        });
-    });
-  };
-  const sendRecuperacaoEmail = (to, linkRecuperacao) => {
-    const transporter = nodemailer.createTransport({
-        service: 'outlook',
-        auth: {
-            user: 'utilidadesprog@outlook.com',
-            pass: 'Prog123456@',
-        },
-    });
-  
-    const mailOptions = {
-      from: 'Grade Acadêmica <utilidadesprog@outlook.com    ',
-      to: to,
-      subject: 'Recuperação de senha',
-      text: `Clique no link a seguir para redefinir sua senha: ${linkRecuperacao}`,
-    };
-  
-    return transporter.sendMail(mailOptions);
-  };
-  
-  module.exports = {
-    sendRecuperacaoEmail,
-  };
-
-
 const isAuth = (req, res) => {
     if(req.session.isAuth) res.status(200).send({
         autenticado: true
@@ -248,6 +161,130 @@ const secret = (req, res) => {
     res.send("acesso autenticado")
 }
 
+const gerarCodigoSeguranca = () => {
+    // Gere um código de segurança aleatório, por exemplo, um número de 6 dígitos
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+  
+  const enviarEmailRecuperacao = async (req, res) => {
+    const { email } = req.body;
+  
+    try {
+      // Gere um código de segurança
+      const codigoSeguranca = gerarCodigoSeguranca();
+  
+      // Salve o código de segurança no banco de dados associado ao e-mail do usuário
+      await queries.salvarCodigoSeguranca(email, codigoSeguranca);
+  
+      // Configuração do Nodemailer
+      const transporter = nodemailer.createTransport({
+        service: 'outlook',
+        auth: {
+          user: 'utilidadesprog@outlook.com',
+          pass: 'Prog123456@',
+        },
+      });
+  
+      // Corpo do e-mail
+      const mailOptions = {
+        from: 'Grade Acadêmica <utilidadesprog@outlook.com>',
+        to: email,
+        subject: 'Recuperação de Senha',
+        text: `Olá! Você solicitou a recuperação de senha. Aqui está seu código de segurança: ${codigoSeguranca}`,
+      };
+  
+      // Envie o e-mail
+      const info = await transporter.sendMail(mailOptions);
+      console.log('E-mail de recuperação enviado:', info.response);
+  
+      res.status(200).send('E-mail de recuperação enviado com sucesso.');
+    } catch (error) {
+      console.error('Erro ao enviar e-mail de recuperação:', error);
+      res.status(500).send('Erro ao enviar e-mail de recuperação.');
+    }
+  };
+  const verificarCodigoSeguranca = async (req, res) => {
+    const { email, codigoSeguranca } = req.body;
+  
+    try {
+      // Obtenha o código de segurança do banco de dados associado ao e-mail do usuário
+      const usuario = await pool.query(queries.getUsuarioByEmail(email));
+  
+      if (!usuario || usuario.rows.length === 0) {
+        return res.status(404).send('E-mail não encontrado.');
+      }
+  
+      const codigoSegurancaNoBanco = usuario.rows[0].codigo_seguranca;
+  
+      // Verifique se o código de segurança fornecido é igual ao código no banco de dados
+      if (codigoSeguranca === codigoSegurancaNoBanco) {
+        return res.status(200).send('Código de segurança correto.');
+      } else {
+        return res.status(400).send('Código de segurança incorreto.');
+      }
+    } catch (error) {
+      console.error('Erro ao verificar o código de segurança:', error);
+      return res.status(500).send('Erro ao verificar o código de segurança.');
+    }
+  };
+
+  const alterarSenha = async (req, res) => {
+    console.log('Recebendo solicitação para alterar senha:', req.body);
+    const { novaSenha, confirmacaoSenha } = req.body;
+    const email = req.session.email; // Certifique-se de que o e-mail está sendo armazenado corretamente na sessão
+  
+    try {
+      // Adicione a lógica para validar as senhas aqui
+      if (novaSenha !== confirmacaoSenha) {
+        return res.status(400).send('A nova senha e a confirmação de senha não correspondem.');
+        console.log('Email do usuário para atualizar senha:', req.session.email);
+      }
+  
+      // Gere o hash da nova senha
+      const hashNovaSenha = await bcrypt.hash(novaSenha, saltRounds);
+  
+      // Atualize a senha no banco de dados
+      await pool.query(queries.atualizarSenha(email, hashNovaSenha));
+  
+      return res.status(200).send('Senha alterada com sucesso.');
+    } catch (error) {
+      console.error('Erro durante a alteração de senha:', error);
+      return res.status(500).send('Erro ao alterar senha. Tente novamente mais tarde.');
+    }
+  };
+  const updateCursadas = async (req, res) => {
+    const { userId, materiasCursadas } = req.body;
+  
+    // Obtenha o usuário atualmente logado
+    const loggedInUserId = req.session.userId;
+  
+    // Verifique se o usuário que está tentando fazer a atualização é o mesmo que está logado
+    if (loggedInUserId !== userId) {
+      return res.status(403).send('Permissão negada. Você não tem permissão para atualizar as matérias de outro usuário.');
+    }
+  
+    try {
+      // Atualize as matérias cursadas no banco de dados
+      await pool.query('UPDATE usuario SET materias_cursadas = $1 WHERE id = $2', [materiasCursadas, userId]);
+  
+      console.log('Matérias Cursadas Atualizadas:', materiasCursadas);
+      res.status(200).send('Matérias cursadas atualizadas com sucesso.');
+    } catch (error) {
+      console.error('Erro ao atualizar matérias cursadas:', error);
+      res.status(500).send('Erro ao atualizar matérias cursadas.');
+    }
+  };
+  const getUserId = (req, res) => {
+    // Verifique se o usuário está autenticado e tem um ID
+    if (req.session.isAuth && req.session.userId) {
+      res.status(200).json({ userId: req.session.userId });
+    } else {
+      res.status(401).send('Usuário não autenticado.');
+    }
+  };
+  
+  
+
 module.exports = {
     getAll,
     post,
@@ -256,7 +293,10 @@ module.exports = {
     secret,
     isAuth,
     confirmarCadastro,
-    recuperarSenha,
-    resetarSenha,
-    sendRecuperacaoEmail,
+    enviarEmailRecuperacao,
+    gerarCodigoSeguranca,
+    verificarCodigoSeguranca,
+    alterarSenha,
+    updateCursadas,
+    getUserId,
 }

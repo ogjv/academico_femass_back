@@ -1,6 +1,7 @@
 const { Router } = require('express')
 const controller = require('./controller')
 const express = require('express');
+const pool = require('../../db');
 
 const router = Router()
 
@@ -19,7 +20,12 @@ router.get('/isAuth', controller.isAuth)
 router.post('/post', controller.post)
 router.delete('/deleteNome', controller.deleteNome)
 router.get('/confirmar/:email', controller.confirmarCadastro);
-router.post('/recuperar-senha', controller.recuperarSenha);
+router.post('/enviar-email-recuperacao', controller.enviarEmailRecuperacao);
+router.post('gerar-codigo-seguranca', controller.gerarCodigoSeguranca);
+router.post('/verificar-codigo', controller.verificarCodigoSeguranca);
+router.post('/alterar-senha', controller.alterarSenha);
+router.post('/update-cursadas', controller.updateCursadas);
+router.get('/user-id', controller.getUserId);
 
 
 module.exports = router
