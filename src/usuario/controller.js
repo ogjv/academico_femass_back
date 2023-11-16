@@ -136,6 +136,13 @@ const validateLogin = (req, res) => {
             bcrypt.compare(req.query.senha, usuario.senha, (err, result) => {
                 if (result) {
                     req.session.isAuth = true;
+                    req.session.userId = usuario.id; 
+                    req.session.save();
+                    console.log('userId after login validation:', req.session.userId);
+                    // Aqui, vamos também definir loggedInUserId para garantir que esteja correto
+                    const loggedInUserId = req.session.userId;
+                    console.log('loggedInUserId:', loggedInUserId);
+
                     res.status(200).send();
                 } else {
                     res.status(400).send();
@@ -146,16 +153,30 @@ const validateLogin = (req, res) => {
         }
     });
 };
+const isAuth = (req, res, next) => {
+    console.log('Middleware isAuth chamado.');
 
-const isAuth = (req, res) => {
-    if(req.session.isAuth) res.status(200).send({
-        autenticado: true
-    })
-
-    res.send({
-        autenticado: false
-    })
-}
+    if (req.session.isAuth) {
+        console.log('Usuário autenticado.');
+        console.log('userId in isAuth middleware:', req.session.userId);
+        const email = req.session.email;
+        pool.query('SELECT id FROM usuario WHERE email = $1', [email], (err, result) => {
+            if (err) {
+                console.error('Erro ao obter ID do usuário:', err);
+                res.status(500).send('Erro interno ao obter ID do usuário.');
+            } else if (result.rows.length > 0) {
+                const userId = result.rows[0].id;
+                req.session.userId = userId;
+                next();
+            } else {
+                res.status(404).send('Usuário não encontrado no banco de dados.');
+            }
+        });
+    } else {
+        console.log('Usuário não autenticado.');
+        res.status(401).send('Usuário não autenticado. Faça login para acessar esta página.');
+    }
+};
 
 const secret = (req, res) => {
     res.send("acesso autenticado")
@@ -163,8 +184,9 @@ const secret = (req, res) => {
 
 const gerarCodigoSeguranca = () => {
     // Gere um código de segurança aleatório, por exemplo, um número de 6 dígitos
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+    const codigoSeguranca = Math.floor(100000 + Math.random() * 900000).toString();
+    return codigoSeguranca;
+};
   
   const enviarEmailRecuperacao = async (req, res) => {
     const { email } = req.body;
@@ -252,19 +274,22 @@ const gerarCodigoSeguranca = () => {
       return res.status(500).send('Erro ao alterar senha. Tente novamente mais tarde.');
     }
   };
+  
   const updateCursadas = async (req, res) => {
-    const { userId, materiasCursadas } = req.body;
-  
-    // Obtenha o usuário atualmente logado
-    const loggedInUserId = req.session.userId;
-  
-    // Verifique se o usuário que está tentando fazer a atualização é o mesmo que está logado
-    if (loggedInUserId !== userId) {
-      return res.status(403).send('Permissão negada. Você não tem permissão para atualizar as matérias de outro usuário.');
-    }
-  
     try {
-      // Atualize as matérias cursadas no banco de dados
+      const { userId, materiasCursadas } = req.body;
+      console.log('userId from request body:', userId);
+  
+      // Verificar se o usuário está autenticado e tem permissão
+      const loggedInUserId = req.session.userId;
+      console.log('loggedInUserId in updateCursadas:', loggedInUserId);
+  
+      if (loggedInUserId !== userId) {
+        console.log('Permissão negada. loggedInUserId !== userId');
+        return res.status(403).send('Permissão negada.');
+      }
+  
+      // Atualizar a coluna materias_cursadas no banco de dados
       await pool.query('UPDATE usuario SET materias_cursadas = $1 WHERE id = $2', [materiasCursadas, userId]);
   
       console.log('Matérias Cursadas Atualizadas:', materiasCursadas);
@@ -274,15 +299,57 @@ const gerarCodigoSeguranca = () => {
       res.status(500).send('Erro ao atualizar matérias cursadas.');
     }
   };
-  const getUserId = (req, res) => {
-    // Verifique se o usuário está autenticado e tem um ID
-    if (req.session.isAuth && req.session.userId) {
-      res.status(200).json({ userId: req.session.userId });
+
+const getUserId = (req, res) => {
+    if (req.session.isAuth) {
+        if (req.session.userId) {
+            const userId = req.session.userId;
+            console.log('UserId from session:', userId);
+            res.status(200).json({ userId });
+        } else if (req.session.email) {
+            const email = req.session.email;
+            pool.query('SELECT id FROM usuario WHERE email = $1', [email], (err, result) => {
+                if (err) {
+                    console.error('Erro ao obter ID do usuário:', err);
+                    res.status(500).send('Erro interno ao obter ID do usuário.');
+                } else if (result.rows.length > 0) {
+                    const userId = result.rows[0].id;
+                    req.session.userId = userId;
+                    console.log('UserId from database:', userId);
+                    res.status(200).json({ userId });
+                } else {
+                    res.status(404).send('Usuário não encontrado no banco de dados.');
+                }
+            });
+        } else {
+            res.status(500).send('Erro interno: A sessão não contém informações de autenticação.');
+        }
     } else {
-      res.status(401).send('Usuário não autenticado.');
+        res.status(401).send('Usuário não autenticado.');
+    }
+};
+
+const updatePeriodo = async (req, res) => {
+    const { userId, periodo } = req.body;
+  
+    try {
+      // Verifique se o usuário existe
+      const userExists = await pool.query('SELECT * FROM usuario WHERE id = $1', [userId]);
+  
+      if (userExists.rows.length === 0) {
+        return res.status(404).send('Usuário não encontrado.');
+      }
+  
+      // Atualize o período do usuário no banco de dados
+      await pool.query('UPDATE usuario SET periodo = $1 WHERE id = $2', [periodo, userId]);
+  
+      console.log(`Período do usuário ${userId} atualizado para ${periodo}`);
+      res.status(200).send('Período do usuário atualizado com sucesso.');
+    } catch (error) {
+      console.error('Erro ao atualizar o período do usuário:', error);
+      res.status(500).send('Erro ao atualizar o período do usuário.');
     }
   };
-  
   
 
 module.exports = {
@@ -299,4 +366,5 @@ module.exports = {
     alterarSenha,
     updateCursadas,
     getUserId,
+    updatePeriodo,
 }

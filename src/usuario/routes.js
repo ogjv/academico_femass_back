@@ -21,11 +21,11 @@ router.post('/post', controller.post)
 router.delete('/deleteNome', controller.deleteNome)
 router.get('/confirmar/:email', controller.confirmarCadastro);
 router.post('/enviar-email-recuperacao', controller.enviarEmailRecuperacao);
-router.post('gerar-codigo-seguranca', controller.gerarCodigoSeguranca);
+router.post('/gerar-codigo-seguranca', controller.gerarCodigoSeguranca);
 router.post('/verificar-codigo', controller.verificarCodigoSeguranca);
 router.post('/alterar-senha', controller.alterarSenha);
-router.post('/update-cursadas', controller.updateCursadas);
-router.get('/user-id', controller.getUserId);
-
+router.post('/update-cursadas', isAuth, controller.updateCursadas);
+router.get('/user-id', isAuth, controller.getUserId);
+router.post('/update-periodo', controller.updatePeriodo);
 
 module.exports = router
