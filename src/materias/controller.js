@@ -26,7 +26,8 @@ const post = (req, res) => {
     } else {
         req.session.views++;
     }
-    pool.query(queries.post(req.query.nome, req.query.curso, req.query.periodo), (err, resSql) => {
+
+    pool.query(queries.post(), [req.query.nome, req.query.curso, req.query.periodo, req.query.horario, req.query.pre_requisitos], (err, resSql) => {
         if(err) res.send(error(err))
         res.status(200).send()
     })
