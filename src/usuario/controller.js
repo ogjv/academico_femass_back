@@ -11,8 +11,6 @@ const error = (err) => {
     })
 }
 
-
-
 const getAll = (req, res) => {
     pool.query(queries.getAll, (err, resSql) => {
         if (err) {
@@ -349,8 +347,39 @@ const updatePeriodo = async (req, res) => {
       console.error('Erro ao atualizar o período do usuário:', error);
       res.status(500).send('Erro ao atualizar o período do usuário.');
     }
-  };
-  
+};
+
+const adicionarMaterias = (req, res) => {
+
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+    
+    if(typeof(req.query.materias) === 'string') req.query.materias = [req.query.materias]
+
+    pool.query(queries.adicionarMaterias(), [req.query.nome, req.query.materias], (err,resSql) =>{
+        if(err) res.send(error(err))
+        res.status(200).send()
+    })
+
+}
+
+const deleteMaterias = (req, res) => {
+ 
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+
+    pool.query(queries.deleteMaterias(), [req.query.nome, req.query.materias], (err,resSql) =>{
+        if(err) res.send(error(err))
+        res.status(200).send()
+    })
+
+}
 
 module.exports = {
     getAll,
@@ -367,4 +396,6 @@ module.exports = {
     updateCursadas,
     getUserId,
     updatePeriodo,
+    adicionarMaterias,
+    deleteMaterias,
 }

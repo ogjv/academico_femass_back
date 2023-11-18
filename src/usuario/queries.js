@@ -48,8 +48,23 @@ const updateCursadas = (materiasCursadas, userId) => {
       text: 'UPDATE usuario SET materias_cursadas = $1 WHERE id = $2',
       values: [materiasCursadas, userId],
     };
-  };
+};
 
+// const adicionarMaterias = `UPDATE usuario SET materias_cursadas = materias_cursadas || $2 WHERE nome=$1`
+
+const adicionarMaterias = () => {
+    return(
+        `UPDATE usuario SET materias_cursadas = materias_cursadas || $2 WHERE nome=$1`
+    )
+}
+
+const deleteMaterias = () => {
+    return(
+        `UPDATE usuario SET materias_cursadas = array_remove(materias_cursadas, $2) WHERE nome=$1`
+    )
+}
+
+// const deleteMaterias = `UPDATE usuario SET materias_cursadas = array_remove(materias_cursadas, ALL($2)) WHERE nome=$1`
 
 module.exports = {
     getAll,
@@ -62,4 +77,6 @@ module.exports = {
     getUsuarioByEmail,
     atualizarSenha,
     updateCursadas,
+    adicionarMaterias,
+    deleteMaterias,
 }
