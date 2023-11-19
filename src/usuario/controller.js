@@ -349,14 +349,14 @@ const updatePeriodo = async (req, res) => {
     }
 };
 
-const adicionarMaterias = (req, res) => {
+const adicionarMateriasCursadas = (req, res) => {
 
     if (!req.session.views) {
         req.session.views = 1;
     } else {
         req.session.views++;
     }
-    
+
     if(typeof(req.query.materias) === 'string') req.query.materias = [req.query.materias]
 
     pool.query(queries.adicionarMaterias(), [req.query.nome, req.query.materias], (err,resSql) =>{
@@ -366,7 +366,7 @@ const adicionarMaterias = (req, res) => {
 
 }
 
-const deleteMaterias = (req, res) => {
+const deleteMateriasCursadas = (req, res) => {
  
     if (!req.session.views) {
         req.session.views = 1;
@@ -375,6 +375,38 @@ const deleteMaterias = (req, res) => {
     }
 
     pool.query(queries.deleteMaterias(), [req.query.nome, req.query.materias], (err,resSql) =>{
+        if(err) res.send(error(err))
+        res.status(200).send()
+    })
+
+}
+
+const adicionarMateriasCursando = (req, res) => {
+
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+    
+    if(typeof(req.query.materias) === 'string') req.query.materias = [req.query.materias]
+
+    pool.query(queries.adicionarMateriasCursando(), [req.query.nome, req.query.materias], (err,resSql) =>{
+        if(err) res.send(error(err))
+        res.status(200).send()
+    })
+
+}
+
+const deleteMateriasCursando = (req, res) => {
+ 
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+
+    pool.query(queries.deleteMateriasCursando(), [req.query.nome, req.query.materias], (err,resSql) =>{
         if(err) res.send(error(err))
         res.status(200).send()
     })
@@ -396,6 +428,8 @@ module.exports = {
     updateCursadas,
     getUserId,
     updatePeriodo,
-    adicionarMaterias,
-    deleteMaterias,
+    adicionarMateriasCursadas,
+    deleteMateriasCursadas,
+    adicionarMateriasCursando,
+    deleteMateriasCursando,
 }

@@ -27,7 +27,9 @@ router.post('/alterar-senha', controller.alterarSenha);
 router.post('/update-cursadas', isAuth, controller.updateCursadas);
 router.get('/user-id', isAuth, controller.getUserId);
 router.post('/update-periodo', controller.updatePeriodo);
-router.post('/adicionar-materias', controller.adicionarMaterias);
-router.delete('/delete-materias', controller.deleteMaterias);
+router.post('/adicionar-materias-cursadas', controller.adicionarMateriasCursadas);
+router.delete('/delete-materias-cursadas', controller.deleteMateriasCursadas);
+router.post('/adicionar-materias-cursando', controller.adicionarMateriasCursando);
+router.delete('/delete-materias-cursando', controller.deleteMateriasCursando);
 
 module.exports = router
