@@ -299,34 +299,57 @@ const gerarCodigoSeguranca = () => {
     }
   };
 
-const getUserId = (req, res) => {
+
+  const getUserId = (req, res) => {
     if (req.session.isAuth) {
-        if (req.session.userId) {
-            const userId = req.session.userId;
-            console.log('UserId from session:', userId);
-            res.status(200).json({ userId });
-        } else if (req.session.email) {
-            const email = req.session.email;
-            pool.query('SELECT id FROM usuario WHERE email = $1', [email], (err, result) => {
-                if (err) {
-                    console.error('Erro ao obter ID do usuário:', err);
-                    res.status(500).send('Erro interno ao obter ID do usuário.');
-                } else if (result.rows.length > 0) {
-                    const userId = result.rows[0].id;
-                    req.session.userId = userId;
-                    console.log('UserId from database:', userId);
-                    res.status(200).json({ userId });
-                } else {
-                    res.status(404).send('Usuário não encontrado no banco de dados.');
-                }
-            });
-        } else {
-            res.status(500).send('Erro interno: A sessão não contém informações de autenticação.');
-        }
+      if (req.session.userId) {
+        const userId = req.session.userId;
+        const username = req.session.username;  // Adicione esta linha para recuperar o nome de usuário da sessão.
+        console.log('UserId from session:', userId);
+        console.log('Username from session:', username);  // Adicione esta linha para verificar o nome de usuário.
+        res.status(200).json({ userId, username });
+      } else if (req.session.email) {
+        const email = req.session.email;
+        pool.query('SELECT id, nome FROM usuario WHERE email = $1', [email], (err, result) => {
+          if (err) {
+            console.error('Erro ao obter ID do usuário:', err);
+            res.status(500).send('Erro interno ao obter ID do usuário.');
+          } else if (result.rows.length > 0) {
+            const { id: userId, nome: username } = result.rows[0];
+            req.session.userId = userId;
+            req.session.username = username;  // Adicione esta linha para armazenar o nome de usuário na sessão.
+            console.log('UserId from database:', userId);
+            console.log('Username from database:', username);  // Adicione esta linha para verificar o nome de usuário.
+            res.status(200).json({ userId, username });
+          } else {
+            res.status(404).send('Usuário não encontrado no banco de dados.');
+          }
+        });
+      } else {
+        res.status(500).send('Erro interno: A sessão não contém informações de autenticação.');
+      }
     } else {
-        res.status(401).send('Usuário não autenticado.');
+      res.status(401).send('Usuário não autenticado.');
+    }
+  };
+  
+  
+
+  const getUsername = (req, res) => {
+    console.log("Recebendo requisição para getUsername");
+    console.log("Cookies recebidos:", req.cookies);
+
+    if (req.session.isAuth && req.session.username) {
+        const username = req.session.username;
+        console.log("Nome de usuário autenticado:", username);
+        res.status(200).json({ username });
+    } else {
+        console.error("Falha na autenticação ou nome de usuário não encontrado na sessão.");
+        res.status(401).send('Usuário não autenticado ou nome de usuário não encontrado na sessão.');
     }
 };
+
+
 
 const updatePeriodo = async (req, res) => {
     const { userId, periodo } = req.body;
@@ -351,6 +374,8 @@ const updatePeriodo = async (req, res) => {
 };
 
 const adicionarMateriasCursadas = (req, res) => {
+    console.log('Chamada para adicionarMateriasCursadas');
+    console.log('req.body:', req.body);
 
     if (!req.session.views) {
         req.session.views = 1;
@@ -358,14 +383,25 @@ const adicionarMateriasCursadas = (req, res) => {
         req.session.views++;
     }
 
-    if(typeof(req.query.materias) === 'string') req.query.materias = [req.query.materias]
+    if (typeof req.body.materias === 'string') req.body.materias = [req.body.materias];
 
-    pool.query(queries.adicionarMaterias(), [req.query.nome, req.query.materias], (err,resSql) =>{
-        if(err) res.send(error(err))
-        res.status(200).send()
-    })
+    console.log('Materias a serem adicionadas:', req.body.materias);
 
-}
+    pool.query(queries.adicionarMaterias(), [req.body.nome, req.body.materias], (err, resSql) => {
+        if (err) {
+            console.error('Erro no SQL:', err);
+            res.send(error(err));
+        } else {
+            console.log('Matérias adicionadas com sucesso');
+            res.status(200).send();
+        }
+    });
+};
+
+  
+
+
+
 
 const deleteMateriasCursadas = (req, res) => {
  
