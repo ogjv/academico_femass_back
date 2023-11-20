@@ -444,8 +444,6 @@ const materiasDisponiveis = (req, res) => {
             res.status(200).send(materiasDisponiveis)
         })
     })
-
-
 }
 
 module.exports = {
