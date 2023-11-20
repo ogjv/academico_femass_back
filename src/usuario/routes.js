@@ -31,5 +31,6 @@ router.post('/adicionar-materias-cursadas', controller.adicionarMateriasCursadas
 router.delete('/delete-materias-cursadas', controller.deleteMateriasCursadas);
 router.post('/adicionar-materias-cursando', controller.adicionarMateriasCursando);
 router.delete('/delete-materias-cursando', controller.deleteMateriasCursando);
+router.get('/materias-disponiveis', controller.materiasDisponiveis);
 
 module.exports = router

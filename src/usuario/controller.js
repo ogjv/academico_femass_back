@@ -1,5 +1,6 @@
 const pool = require('../../db')
 const queries = require('./queries')
+const materiasQueries = require('../materias/queries')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const nodemailer = require('nodemailer');
@@ -413,6 +414,40 @@ const deleteMateriasCursando = (req, res) => {
 
 }
 
+const materiasDisponiveis = (req, res) => {
+
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+
+    var materiasDisponiveis = []
+
+    pool.query(queries.getNome(req.query.nome), (err, resSql) => {
+        if(err) res.send(error(err))
+        if(!resSql.rows[0]) {   
+            res.status(400).send()
+            return
+        }
+        // console.log(resSql.rows[0]['materias_cursadas'])
+        const materias_cursadas = resSql.rows[0]['materias_cursadas']
+
+        pool.query(materiasQueries.getAll, (err2, resSql2) => {
+            if(err) res.send(error(err))
+            resSql2.rows.forEach(materia => {
+                console.log(materia['pre_requisitos'])
+                if(materia['pre_requisitos'].every(preRequisito => materias_cursadas.includes(preRequisito))){
+                    materiasDisponiveis.push(materia)
+                }
+            })
+            res.status(200).send(materiasDisponiveis)
+        })
+    })
+
+
+}
+
 module.exports = {
     getAll,
     post,
@@ -432,4 +467,5 @@ module.exports = {
     deleteMateriasCursadas,
     adicionarMateriasCursando,
     deleteMateriasCursando,
+    materiasDisponiveis,
 }
