@@ -51,10 +51,11 @@ const updateCursadas = (materiasCursadas, userId) => {
 };
 
 const adicionarMaterias = () => {
-    return(
+    return (
         `UPDATE usuario SET materias_cursadas = materias_cursadas || $2 WHERE nome=$1`
-    )
+    );
 }
+
 
 const deleteMaterias = () => {
     return(
