@@ -618,6 +618,7 @@ const getGradeDoUsuario = async (req, res) => {
 
 
 
+
 module.exports = {
     getAll,
     post,
@@ -643,4 +644,5 @@ module.exports = {
     getUsernameById,
     getGradeDoUsuario,
     getMateriasAtuaisDoUsuario,
+    materiasDisponiveis,
 }
