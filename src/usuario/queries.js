@@ -75,7 +75,11 @@ const deleteMateriasCursando = () => {
         `UPDATE usuario SET materias_atuais = array_remove(materias_atuais, $2) WHERE nome=$1`
     )
 }
-
+const getMateriasCursadas = () => {
+    return(
+    'SELECT materias_cursadas FROM usuario WHERE nome = $1'
+    )
+}
 module.exports = {
     getAll,
     getNome,
@@ -91,4 +95,5 @@ module.exports = {
     deleteMaterias,
     adicionarMateriasCursando,
     deleteMateriasCursando,
+    getMateriasCursadas,
 }

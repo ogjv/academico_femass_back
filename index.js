@@ -7,6 +7,8 @@ const pgSession = require('connect-pg-simple')(session);
 const usuarioRoutes = require('./src/usuario/routes');
 const materiaRoutes = require('./src/materias/routes');
 const cookieParser = require('cookie-parser');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
 var cors = require('cors');
 
 app.use(express.json());
@@ -34,6 +36,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+
 app.get("/", (req, res) => {
     req.session.test = true;
     console.log(req.session.id);
@@ -42,14 +45,30 @@ app.get("/", (req, res) => {
 
 app.use('/api/v1/usuarios', usuarioRoutes);
 app.use('/api/v1/materias', materiaRoutes);
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:your_frontend_port');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    console.log("Recebendo requisição:", req.url);
-    console.log("Cookies recebidos:", req.cookies);
-    next();
-  });
+
 
 app.listen(port, () => console.log(`running on port ${port}`));
+
+module.exports = function(app) {
+    app.use(
+      '/api',
+      createProxyMiddleware({
+        target: 'http://localhost:8080', 
+        changeOrigin: true,
+      })
+    );
+  }
+
+
+const mongoose = require('mongoose');
+
+const usuarioSchema = new mongoose.Schema({
+  id: Number, // Adapte conforme necessário
+  nome: String,
+  // Outros campos do usuário, se houver
+});
+
+const Usuario = mongoose.model('Usuario', usuarioSchema);
+
+module.exports = Usuario;
+

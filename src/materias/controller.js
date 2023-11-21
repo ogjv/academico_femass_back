@@ -1,5 +1,7 @@
 const pool = require('../../db')
 const queries = require('./queries')
+const { Materia, Usuario, Sequelize } = require('../../db');
+
 
 const error = (err) => {
     return({
@@ -47,8 +49,44 @@ const deleteNome = (req, res) => {
     })
 }
 
+const getMateriasMontagemGrade = async (req, res) => {
+    try {
+      const { nome } = req.query;
+  
+      // Obtenha as matérias cursadas pelo usuário
+      const usuario = await Usuario.findOne({ where: { nome } });
+      const materiasCursadas = usuario.materias_cursadas || [];
+  
+      // Consulte as matérias que não são pré-requisitos de outras matérias já cursadas
+      const materias = await Materia.findAll({
+        where: {
+          nome: { [Op.notIn]: materiasCursadas },
+          pre_requisitos: { [Op.notLike]: { [Op.any]: materiasCursadas } },
+        },
+        limit: 6, // Limita a 6 matérias
+      });
+  
+      // Verifica conflitos de horários
+      const horariosSelecionados = new Set();
+      const materiasFiltradas = materias.filter((materia) => {
+        if (!horariosSelecionados.has(materia.horario)) {
+          horariosSelecionados.add(materia.horario);
+          return true;
+        }
+        return false;
+      });
+  
+      res.status(200).json(materiasFiltradas);
+    } catch (error) {
+      console.error('Erro ao obter matérias para MontagemGrade:', error);
+      res.status(500).json(error(error));
+    }
+  };
+  
+
 module.exports = {
     getAll,
     post,
     deleteNome,
+    getMateriasMontagemGrade,
 }

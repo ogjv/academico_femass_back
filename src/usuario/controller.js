@@ -1,6 +1,7 @@
 const pool = require('../../db')
 const queries = require('./queries')
 const bcrypt = require('bcrypt');
+const materiasQueries = require('../materias/queries')
 const saltRounds = 10;
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
@@ -338,15 +339,28 @@ const gerarCodigoSeguranca = () => {
     console.log("Recebendo requisição para getUsername");
     console.log("Cookies recebidos:", req.cookies);
 
-    if (req.session.isAuth && req.session.username) {
-        const username = req.session.username;
-        console.log("Nome de usuário autenticado:", username);
-        res.status(200).json({ username });
+    if (req.session.isAuth && req.session.userId) {
+        const userId = req.session.userId;
+
+        // Aqui você pode fazer uma consulta ao banco de dados para obter o nome do usuário com base no ID.
+        pool.query('SELECT nome FROM usuario WHERE id = $1', [userId], (err, result) => {
+            if (err) {
+                console.error('Erro ao obter nome do usuário por ID:', err);
+                res.status(500).send('Erro interno ao obter nome do usuário por ID.');
+            } else if (result.rows.length > 0) {
+                const username = result.rows[0].nome;
+                console.log("Nome de usuário autenticado:", username);
+                res.status(200).json({ username });
+            } else {
+                res.status(404).send('Usuário não encontrado no banco de dados.');
+            }
+        });
     } else {
-        console.error("Falha na autenticação ou nome de usuário não encontrado na sessão.");
-        res.status(401).send('Usuário não autenticado ou nome de usuário não encontrado na sessão.');
+        console.error("Falha na autenticação ou ID do usuário não encontrado na sessão.");
+        res.status(401).send('Usuário não autenticado ou ID do usuário não encontrado na sessão.');
     }
 };
+
 
 
 
@@ -417,22 +431,76 @@ const deleteMateriasCursadas = (req, res) => {
 
 }
 
+// adicionarMateriasCursando rota
+
 const adicionarMateriasCursando = (req, res) => {
-
-    if (!req.session.views) {
-        req.session.views = 1;
-    } else {
-        req.session.views++;
+    if (typeof req.body.materiasSelecionadas === 'string') {
+        req.body.materiasSelecionadas = [req.body.materiasSelecionadas];
     }
-    
-    if(typeof(req.query.materias) === 'string') req.query.materias = [req.query.materias]
 
-    pool.query(queries.adicionarMateriasCursando(), [req.query.nome, req.query.materias], (err,resSql) =>{
-        if(err) res.send(error(err))
-        res.status(200).send()
-    })
+    // Consulta para obter os nomes das matérias com base nos IDs
+    pool.query(
+        'SELECT nome FROM materias WHERE id = ANY($1::int[])',
+        [req.body.materiasSelecionadas.map(Number)],
+        (err, result) => {
+            if (err) {
+                console.error('Erro ao obter nomes das matérias:', err);
+                res.status(500).send('Erro ao adicionar matérias');
+            } else {
+                const nomesMaterias = result.rows.map(row => row.nome);
 
-}
+                // Atualiza o usuário com os nomes das matérias
+                pool.query(
+                    'UPDATE usuario SET materias_atuais = array_cat(materias_atuais, $2) WHERE nome=$1',
+                    [req.body.nome, nomesMaterias],
+                    (err, result) => {
+                        if (err) {
+                            console.error('Erro ao adicionar matérias:', err);
+                            res.status(500).send('Erro ao adicionar matérias');
+                        } else {
+                            console.log('Matérias adicionadas com sucesso.');
+                            res.status(200).send('Matérias adicionadas com sucesso.');
+                        }
+                    }
+                );
+            }
+        }
+    );
+};
+
+
+// getSubjectsForMontagemGrade rota
+
+const getSubjectsForMontagemGrade = (req, res) => {
+    const { nome } = req.query;
+
+    pool.query(queries.getSubjectsForMontagemGrade(), [nome], (err, result) => {
+        if (err) {
+            console.error('Erro ao obter matérias para MontagemGrade:', err);
+            res.status(500).send('Erro interno ao obter matérias para MontagemGrade.');
+        } else {
+            const subjects = result.rows;
+            res.status(200).json(subjects);
+        }
+    });
+};
+
+// getMateriasCursadas rota
+
+const getMateriasCursadas = (req, res) => {
+    // Obtenha o nome do usuário a partir da sessão ou de onde quer que seja armazenado
+    const nome = 'joao'; // Substitua pelo nome do usuário
+
+    pool.query(queries.getMateriasCursadas(), [nome], (err, result) => {
+        if (err) {
+            console.error('Erro ao obter matérias cursadas:', err);
+            res.status(500).send('Erro interno ao obter matérias cursadas.');
+        } else {
+            const cursadas = result.rows[0].materias_cursadas || [];
+            res.status(200).json(cursadas);
+        }
+    });
+};
 
 const deleteMateriasCursando = (req, res) => {
  
@@ -448,6 +516,107 @@ const deleteMateriasCursando = (req, res) => {
     })
 
 }
+const materiasDisponiveis = (req, res) => {
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+
+    var materiasDisponiveis = [];
+
+    pool.query(queries.getNome(req.query.nome), (err, resSql) => {
+        if (err) res.send(error(err));
+        if (!resSql.rows[0]) {
+            res.status(400).send();
+            return;
+        }
+
+        const materias_cursadas = resSql.rows[0]['materias_cursadas'];
+
+        pool.query(materiasQueries.getAll, (err2, resSql2) => {
+            if (err2) res.send(error(err2));
+
+            resSql2.rows.forEach((materia) => {
+                const preRequisitosFaltantes = materia['pre_requisitos'].filter(
+                    (preRequisito) => !materias_cursadas.includes(preRequisito)
+                );
+
+                // Verifica se todos os pré-requisitos foram cumpridos e a matéria não está cursada
+                if (
+                    preRequisitosFaltantes.length === 0 &&
+                    !materias_cursadas.includes(materia.nome)
+                ) {
+                    materiasDisponiveis.push(materia);
+                }
+            });
+
+            res.status(200).send(materiasDisponiveis);
+        });
+    });
+};
+
+const getUsernameById = (req, res) => {
+    console.log("Recebendo requisição para getUsernameById");
+
+    // Extraia o userId dos parâmetros da solicitação
+    const userId = parseInt(req.params.userId);
+
+    // Aqui você pode fazer uma consulta ao banco de dados para obter o nome do usuário com base no ID.
+    pool.query('SELECT nome FROM usuario WHERE id = $1', [userId], (err, result) => {
+        if (err) {
+            console.error('Erro ao obter nome do usuário por ID:', err);
+            res.status(500).send('Erro interno ao obter nome do usuário por ID.');
+        } else if (result.rows.length > 0) {
+            const username = result.rows[0].nome;
+            console.log("Nome de usuário encontrado:", username);
+            res.status(200).json({ username });
+        } else {
+            res.status(404).send('Usuário não encontrado no banco de dados.');
+        }
+    });
+};
+
+const getGradeDoUsuario = async (req, res) => {
+    const userId = req.params.id;
+  
+    try {
+      // Use o pool para fazer uma consulta ao banco de dados para obter a grade do usuário
+      const result = await pool.query('SELECT * FROM grade WHERE user_id = $1', [userId]);
+  
+      // Verifique se há resultados
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Grade do usuário não encontrada.' });
+      }
+  
+      // Se houver resultados, envie a grade como resposta
+      const gradeDoUsuario = result.rows;
+      res.status(200).json(gradeDoUsuario);
+    } catch (error) {
+      console.error('Erro ao obter a grade do usuário:', error);
+      res.status(500).json({ error: 'Erro interno ao obter a grade do usuário.' });
+    }
+  };
+  const getMateriasAtuaisDoUsuario = async (req, res) => {
+    const userId = req.params.id;
+  
+    try {
+      const result = await pool.query('SELECT materias_atuais FROM usuario WHERE id = $1', [userId]);
+  
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Usuário não encontrado ou sem matérias atuais.' });
+      }
+  
+      const materiasAtuais = result.rows[0].materias_atuais || [];
+      res.status(200).json(materiasAtuais);
+    } catch (error) {
+      console.error('Erro ao obter as matérias atuais do usuário:', error);
+      res.status(500).json({ error: 'Erro interno ao obter as matérias atuais do usuário.' });
+    }
+  };
+  
+
+
 
 module.exports = {
     getAll,
@@ -469,4 +638,9 @@ module.exports = {
     adicionarMateriasCursando,
     deleteMateriasCursando,
     getUsername,
+    getMateriasCursadas,
+    materiasDisponiveis,
+    getUsernameById,
+    getGradeDoUsuario,
+    getMateriasAtuaisDoUsuario,
 }
