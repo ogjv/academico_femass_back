@@ -80,6 +80,28 @@ const getMateriasCursadas = () => {
     'SELECT materias_cursadas FROM usuario WHERE nome = $1'
     )
 }
+const getMateriasAtuaisComHorarios = () => {
+    return 'SELECT u.materias_atuais, m.nome AS materia, m.horario FROM usuario u INNER JOIN materias m ON m.nome = ANY(u.materias_atuais) WHERE u.id = $1';
+  };
+
+  const getHistorico = () => {
+    return `
+        SELECT
+            periodo,
+            array_agg(materia) as materias_cursadas
+        FROM (
+            SELECT
+                periodo,
+                unnest(materias_cursadas) as materia
+            FROM usuario
+            WHERE id = $1
+        ) AS historico
+        GROUP BY periodo
+        ORDER BY periodo;
+    `;
+};
+
+
 module.exports = {
     getAll,
     getNome,
@@ -96,4 +118,6 @@ module.exports = {
     adicionarMateriasCursando,
     deleteMateriasCursando,
     getMateriasCursadas,
+    getMateriasAtuaisComHorarios,
+    getHistorico,
 }

@@ -614,6 +614,42 @@ const getGradeDoUsuario = async (req, res) => {
       res.status(500).json({ error: 'Erro interno ao obter as matérias atuais do usuário.' });
     }
   };
+
+  const getMateriasAtuaisComHorarios = async (req, res) => {
+    try {
+      const userId = req.params.id; // Altere para a forma como você obtém o ID do usuário da solicitação
+  
+      // Use o pool para fazer uma consulta ao banco de dados para obter as matérias atuais do usuário
+      const result = await pool.query(queries.getMateriasAtuaisComHorarios(), [userId]);
+  
+      // Verifique se há resultados
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Usuário não encontrado ou sem matérias atuais.' });
+      }
+  
+      // Se houver resultados, envie as matérias atuais com horários como resposta
+      const materiasAtuaisComHorarios = result.rows;
+      res.status(200).json(materiasAtuaisComHorarios);
+    } catch (error) {
+      console.error('Erro ao obter as matérias atuais do usuário com horários:', error);
+      res.status(500).json({ error: 'Erro interno ao obter as matérias atuais do usuário com horários.' });
+    }
+  };
+
+  const getHistorico = (req, res) => {
+    const userId = req.params.id;
+
+    pool.query(queries.getHistorico(), [userId], (err, result) => {
+        if (err) {
+            console.error('Erro ao obter histórico do usuário:', err);
+            res.status(500).json({ error: 'Erro interno ao obter histórico do usuário.' });
+        } else {
+            const historico = result.rows;
+            res.status(200).json(historico);
+        }
+    });
+};
+
   
 
 
@@ -645,4 +681,6 @@ module.exports = {
     getGradeDoUsuario,
     getMateriasAtuaisDoUsuario,
     materiasDisponiveis,
+    getMateriasAtuaisComHorarios,
+    getHistorico,
 }
