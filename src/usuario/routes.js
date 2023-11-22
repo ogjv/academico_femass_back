@@ -33,7 +33,6 @@ router.post('/adicionar-materias-cursando', controller.adicionarMateriasCursando
 router.delete('/delete-materias-cursando', controller.deleteMateriasCursando);
 router.get('/materias-disponiveis', controller.materiasDisponiveis);
 router.get('/username', controller.getUsername);
-router.get('/materias-disponiveis', controller.materiasDisponiveis);
 router.get('/username/:userId', controller.getUsernameById);
 router.get('/grade/:id', controller.getGradeDoUsuario);
 router.get('/usuarios/materias-atuais/:id', controller.getMateriasAtuaisDoUsuario);
