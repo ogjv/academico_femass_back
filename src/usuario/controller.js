@@ -488,8 +488,8 @@ const getSubjectsForMontagemGrade = (req, res) => {
 // getMateriasCursadas rota
 
 const getMateriasCursadas = (req, res) => {
-    // Obtenha o nome do usuário a partir da sessão ou de onde quer que seja armazenado
-    const nome = 'joao'; // Substitua pelo nome do usuário
+    // Obtem o nome do usuário a partir da sessão ou de onde quer que seja armazenado
+    const nome = 'joao'; // Substitui pelo nome do usuário
 
     pool.query(queries.getMateriasCursadas(), [nome], (err, result) => {
         if (err) {
@@ -559,10 +559,10 @@ const materiasDisponiveis = (req, res) => {
 const getUsernameById = (req, res) => {
     console.log("Recebendo requisição para getUsernameById");
 
-    // Extraia o userId dos parâmetros da solicitação
+    // Extrai o userId dos parâmetros da solicitação
     const userId = parseInt(req.params.userId);
 
-    // Aqui você pode fazer uma consulta ao banco de dados para obter o nome do usuário com base no ID.
+    // Faz uma consulta ao banco de dados para obter o nome do usuário com base no ID.
     pool.query('SELECT nome FROM usuario WHERE id = $1', [userId], (err, result) => {
         if (err) {
             console.error('Erro ao obter nome do usuário por ID:', err);
@@ -581,15 +581,15 @@ const getGradeDoUsuario = async (req, res) => {
     const userId = req.params.id;
   
     try {
-      // Use o pool para fazer uma consulta ao banco de dados para obter a grade do usuário
+      // Usa o pool para fazer uma consulta ao banco de dados para obter a grade do usuário
       const result = await pool.query('SELECT * FROM grade WHERE user_id = $1', [userId]);
   
-      // Verifique se há resultados
+      // Verifica se há resultados
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Grade do usuário não encontrada.' });
       }
   
-      // Se houver resultados, envie a grade como resposta
+      // Se houver resultados, envia a grade como resposta
       const gradeDoUsuario = result.rows;
       res.status(200).json(gradeDoUsuario);
     } catch (error) {
@@ -617,17 +617,17 @@ const getGradeDoUsuario = async (req, res) => {
 
   const getMateriasAtuaisComHorarios = async (req, res) => {
     try {
-      const userId = req.params.id; // Altere para a forma como você obtém o ID do usuário da solicitação
+      const userId = req.params.id;
   
-      // Use o pool para fazer uma consulta ao banco de dados para obter as matérias atuais do usuário
+      // Usa o pool para fazer uma consulta ao banco de dados para obter as matérias atuais do usuário
       const result = await pool.query(queries.getMateriasAtuaisComHorarios(), [userId]);
   
-      // Verifique se há resultados
+      // Verifica se há resultados
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Usuário não encontrado ou sem matérias atuais.' });
       }
   
-      // Se houver resultados, envie as matérias atuais com horários como resposta
+      // Se houver resultados, envia as matérias atuais com horários como resposta
       const materiasAtuaisComHorarios = result.rows;
       res.status(200).json(materiasAtuaisComHorarios);
     } catch (error) {

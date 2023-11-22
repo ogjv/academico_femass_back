@@ -84,7 +84,7 @@ const getMateriasAtuaisComHorarios = () => {
     return 'SELECT u.materias_atuais, m.nome AS materia, m.horario FROM usuario u INNER JOIN materias m ON m.nome = ANY(u.materias_atuais) WHERE u.id = $1';
   };
 
-  const getHistorico = () => {
+const getHistorico = () => {
     return `
         SELECT
             periodo,
