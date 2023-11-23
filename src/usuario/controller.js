@@ -33,14 +33,14 @@ const sendConfirmationEmail = (toEmail, res) => {
     const transporter = nodemailer.createTransport({
         service: 'outlook',
         auth: {
-            user: 'utilidadesprog@outlook.com',
-            pass: 'Prog123456@',
+            user: 'projetomobile@outlook.com',
+            pass: 'Mobile123456@',
         },
     });
 
     const confirmationLink = `http://localhost:8080/api/v1/usuarios/confirmar/${encodeURIComponent(toEmail)}`;
     const mailOptions = {
-        from: 'Grade Acadêmica <utilidadesprog@outlook.com>',
+        from: 'Grade Acadêmica <projetomobile@outlook.com>',
         to: toEmail, 
         subject: 'Confirmação de Cadastro',
         text: `Obrigado por se cadastrar na grade acadêmica FeMASS! Para confirmar seu cadastro, clique no seguinte link: ${confirmationLink}`,
@@ -134,13 +134,21 @@ const validateLogin = (req, res) => {
         if (usuario.confirmacao === true) {
             bcrypt.compare(req.query.senha, usuario.senha, (err, result) => {
                 if (result) {
+                    // Se o login for bem-sucedido, atualiza primeiro_acesso para false
+                    if (usuario.primeiro_acesso) {
+                        pool.query('UPDATE usuario SET primeiro_acesso = false WHERE id = $1', [usuario.id], (err, result) => {
+                            if (err) {
+                                console.error('Erro ao atualizar primeiro_acesso:', err);
+                            } else {
+                                console.log('A coluna primeiro_acesso foi atualizada para false.');
+                            }
+                        });
+                    }
+    
                     req.session.isAuth = true;
-                    req.session.userId = usuario.id; 
+                    req.session.userId = usuario.id;
                     req.session.save();
                     console.log('userId after login validation:', req.session.userId);
-                    // Aqui, vamos também definir loggedInUserId para garantir que esteja correto
-                    const loggedInUserId = req.session.userId;
-                    console.log('loggedInUserId:', loggedInUserId);
 
                     res.status(200).send();
                 } else {
@@ -201,14 +209,14 @@ const gerarCodigoSeguranca = () => {
       const transporter = nodemailer.createTransport({
         service: 'outlook',
         auth: {
-          user: 'utilidadesprog@outlook.com',
-          pass: 'Prog123456@',
+          user: 'projetomobile@outlook.com',
+          pass: 'Mobile123456@',
         },
       });
   
       // Corpo do e-mail
       const mailOptions = {
-        from: 'Grade Acadêmica <utilidadesprog@outlook.com>',
+        from: 'Grade Acadêmica <projetomobile@outlook.com>',
         to: email,
         subject: 'Recuperação de Senha',
         text: `Olá! Você solicitou a recuperação de senha. Aqui está seu código de segurança: ${codigoSeguranca}`,
