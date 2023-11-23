@@ -38,6 +38,7 @@ router.get('/grade/:id', controller.getGradeDoUsuario);
 router.get('/usuarios/materias-atuais/:id', controller.getMateriasAtuaisDoUsuario);
 router.get('/materias-atuais-com-horario/:id', controller.getMateriasAtuaisComHorarios);
 router.get('/:id/historico', controller.getHistorico);
+router.get('/primeiro-acesso/:id', controller.getPrimeiroAcesso);
 
 
 

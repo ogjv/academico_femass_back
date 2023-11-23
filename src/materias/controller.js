@@ -82,6 +82,25 @@ const getMateriasMontagemGrade = async (req, res) => {
       res.status(500).json(error(error));
     }
   };
+  const getMateriasCurso = (req, res) => {
+    var materiasCurso = [];
+
+    pool.query(queries.getAll, (err, resSql) => {
+        if (err) {
+            return res.send(error(err));
+        }
+
+        resSql.rows.forEach((materia) => {
+            if (materia['curso'] === req.query.curso) {
+                materiasCurso.push(materia);
+            }
+        });
+
+        // Enviar a resposta dentro do callback para garantir que os dados estejam prontos
+        res.status(200).json(materiasCurso);
+    });
+};
+
   
 
 module.exports = {
@@ -89,4 +108,5 @@ module.exports = {
     post,
     deleteNome,
     getMateriasMontagemGrade,
+    getMateriasCurso
 }

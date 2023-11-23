@@ -7,5 +7,6 @@ router.get('/', controller.getAll)
 router.post('/post', controller.post)
 router.delete('/deleteNome', controller.deleteNome)
 router.get('/montagem-grade', controller.getMateriasMontagemGrade)
+router.get('/materiascurso', controller.getMateriasCurso)
 
 module.exports = router

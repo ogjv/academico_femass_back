@@ -564,6 +564,55 @@ const materiasDisponiveis = (req, res) => {
     });
 };
 
+const materiasDisponiveisPorCurso = (req, res) => {
+    if (!req.session.views) {
+        req.session.views = 1;
+    } else {
+        req.session.views++;
+    }
+
+    const { nome, curso } = req.query;
+
+    if (!nome || !curso) {
+        res.status(400).send('Nome e curso são parâmetros obrigatórios.');
+        return;
+    }
+
+    var materiasDisponiveis = [];
+
+    pool.query(queries.getNome(nome), (err, resSql) => {
+        if (err) res.send(error(err));
+        if (!resSql.rows[0]) {
+            res.status(400).send('Usuário não encontrado.');
+            return;
+        }
+
+        const materias_cursadas = resSql.rows[0]['materias_cursadas'];
+
+        pool.query(materiasQueries.getAll, (err2, resSql2) => {
+            if (err2) res.send(error(err2));
+
+            resSql2.rows.forEach((materia) => {
+                const preRequisitosFaltantes = materia['pre_requisitos'].filter(
+                    (preRequisito) => !materias_cursadas.includes(preRequisito)
+                );
+
+                // Verifica se todos os pré-requisitos foram cumpridos, a matéria não está cursada
+                // e a matéria pertence ao curso desejado
+                if (
+                    preRequisitosFaltantes.length === 0 &&
+                    !materias_cursadas.includes(materia.nome) &&
+                    materia.curso === curso
+                ) {
+                    materiasDisponiveis.push(materia);
+                }
+            });
+
+            res.status(200).send(materiasDisponiveis);
+        });
+    });
+};
+
 const getUsernameById = (req, res) => {
     console.log("Recebendo requisição para getUsernameById");
 
@@ -658,6 +707,23 @@ const getGradeDoUsuario = async (req, res) => {
     });
 };
 
+const getPrimeiroAcesso = async (req, res) => {
+    const userId = req.params.id;
+  
+    try {
+      const result = await pool.query('SELECT primeiro_acesso FROM usuario WHERE id = $1', [userId]);
+  
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: 'Usuário não encontrado' });
+      } else {
+        const primeiroAcesso = result.rows[0].primeiro_acesso;
+        res.status(200).json({ primeiro_acesso: primeiroAcesso });
+      }
+    } catch (error) {
+      console.error('Erro ao obter o estado de primeiro_acesso:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  };
   
 
 
@@ -691,4 +757,5 @@ module.exports = {
     materiasDisponiveis,
     getMateriasAtuaisComHorarios,
     getHistorico,
+    getPrimeiroAcesso,
 }
